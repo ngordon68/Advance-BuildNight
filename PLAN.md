@@ -74,9 +74,9 @@ Advance BuildNight/
 3. Site settings → Location → Block → reload → banner "Location unavailable — showing Chicago. Enable location in your browser settings to see your area." and map on Chicago.
 **Commit:** `feat: show user location on map with Chicago fallback`
 
-### [ ] Phase 3 — Questionnaire (guest, localStorage)
+### [x] Phase 3 — Questionnaire (guest, localStorage)
 **Goal:** Two-step form; answers saved locally; first visit routes to form, later visits go to map; "Edit interests" in header.
-**Files:** `react-router-dom`, `src/pages/QuestionnairePage.tsx`, `src/components/StepIndicator.tsx`, `src/lib/categories.ts`, `src/lib/storage.ts`, `src/hooks/usePreferences.ts`, `src/types.ts`, `App.tsx` routes (`/`, `/questionnaire`).
+**Files:** `react-router` (v8; `react-router-dom` is no longer published past v7), `src/pages/QuestionnairePage.tsx`, `src/components/StepIndicator.tsx`, `src/lib/categories.ts`, `src/lib/storage.ts`, `src/hooks/usePreferences.ts`, `src/types.ts`, `App.tsx` routes (`/`, `/questionnaire`).
 **Test:**
 1. DevTools → Application → Local Storage → clear. Reload → redirected to `/questionnaire`, step 1 of 2.
 2. Click **Next** with nothing selected → button disabled / "Pick at least one".
