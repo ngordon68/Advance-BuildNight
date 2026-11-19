@@ -6,6 +6,10 @@ export type OsmTag = { key: string; value: string; label: string }
 export type Category = {
   id: CategoryId
   label: string
+  /** Compact label for the map legend. */
+  shortLabel: string
+  /** Marker shape, so categories differ by more than color. */
+  shape: 'square' | 'circle' | 'pin'
   description: string
   emoji: string
   /** Marker / accent color. */
@@ -19,6 +23,8 @@ export const CATEGORIES: Category[] = [
   {
     id: 'history',
     label: 'History & monuments',
+    shortLabel: 'History',
+    shape: 'square',
     description: 'Memorials, monuments and historic sites',
     emoji: '🏛️',
     color: '#c2410c',
@@ -30,9 +36,11 @@ export const CATEGORIES: Category[] = [
   {
     id: 'art',
     label: 'Art & culture',
+    shortLabel: 'Art',
+    shape: 'circle',
     description: 'Museums, galleries, public art and theatres',
     emoji: '🎨',
-    color: '#9333ea',
+    color: '#7e22ce',
     tags: {
       quiet: [tag('tourism', 'museum', 'Museum')],
       lively: [tag('tourism', 'artwork', 'Public art'), tag('tourism', 'gallery', 'Gallery'), tag('amenity', 'theatre', 'Theatre')],
@@ -41,9 +49,11 @@ export const CATEGORIES: Category[] = [
   {
     id: 'nature',
     label: 'Nature & parks',
+    shortLabel: 'Nature',
+    shape: 'pin',
     description: 'Parks, gardens, nature reserves and viewpoints',
     emoji: '🌿',
-    color: '#16a34a',
+    color: '#2f7d4a',
     tags: {
       quiet: [tag('leisure', 'garden', 'Garden'), tag('leisure', 'nature_reserve', 'Nature reserve'), tag('tourism', 'viewpoint', 'Viewpoint')],
       lively: [tag('leisure', 'park', 'Park')],

@@ -1,10 +1,12 @@
 import '../lib/maplibre'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import Map, { Layer, NavigationControl, Source, type MapRef } from 'react-map-gl/maplibre'
+import Map, { AttributionControl, Layer, Source, type MapRef } from 'react-map-gl/maplibre'
 import DetailPanel from '../components/DetailPanel'
 import LandmarkMarker from '../components/LandmarkMarker'
 import Legend from '../components/Legend'
 import LocationBanner from '../components/LocationBanner'
+import MapControls from '../components/MapControls'
+import PlaceList from '../components/PlaceList'
 import StatusPill, { Spinner } from '../components/StatusPill'
 import UserLocation from '../components/UserLocation'
 import { useColorScheme } from '../hooks/useColorScheme'
@@ -14,7 +16,7 @@ import { usePreferencesState } from '../hooks/usePreferences'
 import { DEFAULT_CENTER, DEFAULT_ZOOM, MAP_STYLES } from '../lib/constants'
 import { circlePolygon, distanceMeters } from '../lib/geo'
 import { SEARCH_RADIUS_M } from '../lib/landmarks'
-import type { LatLon } from '../types'
+import type { Landmark, LatLon } from '../types'
 
 /** Re-search only after the user has moved this far, so GPS jitter doesn't refetch. */
 const RESEARCH_DISTANCE_M = 250
@@ -48,6 +50,12 @@ export default function MapPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const selected = places.status === 'success' ? places.landmarks.find((l) => l.id === selectedId) : undefined
   const closePanel = useCallback(() => setSelectedId(null), [])
+  const [listOpen, setListOpen] = useState(false)
+  const closeAll = useCallback(() => {
+    setSelectedId(null)
+    setListOpen(false)
+  }, [])
+  const panelOpen = !!selected || listOpen
 
   const selectLandmark = useCallback((id: string) => {
     setSelectedId(id)
@@ -66,6 +74,11 @@ export default function MapPage() {
       duration: 500,
     })
   }, [selected])
+
+  const distanceOf = useCallback(
+    (l: Landmark) => (geo.status === 'ok' ? distanceMeters(geo, l) : l.distance),
+    [geo],
+  )
 
   const radius = useMemo(
     () => searchCenter && circlePolygon(searchCenter.latitude, searchCenter.longitude, SEARCH_RADIUS_M),
@@ -86,11 +99,11 @@ export default function MapPage() {
         initialViewState={{ ...DEFAULT_CENTER, zoom: DEFAULT_ZOOM }}
         mapStyle={MAP_STYLES[scheme]}
         style={{ position: 'absolute', inset: 0 }}
-        attributionControl={{ compact: true }}
+        attributionControl={false}
         onLoad={() => setMapLoaded(true)}
         onClick={closePanel}
       >
-        <NavigationControl position="bottom-right" visualizePitch />
+        <AttributionControl position="top-right" compact />
         {radius && (
           <Source id="search-radius" type="geojson" data={radius}>
             <Layer id="search-radius-fill" type="fill" paint={{ 'fill-color': '#0d9488', 'fill-opacity': 0.04 }} />
@@ -113,7 +126,7 @@ export default function MapPage() {
       {/* Status messages stack under the header */}
       <div
         className={`pointer-events-none absolute inset-x-4 top-20 z-10 mx-auto flex max-w-md flex-col items-center gap-2 *:pointer-events-auto ${
-          selected ? 'sm:left-[24rem]' : '' /* make room for the side panel */
+          panelOpen ? 'sm:left-[26rem]' : '' /* make room for the side panel */
         }`}
       >
         {geo.status === 'unavailable' && <LocationBanner reason={geo.reason} />}
@@ -148,19 +161,51 @@ export default function MapPage() {
         )}
       </div>
 
-      {selected && (
+      {selected ? (
         <DetailPanel
           key={selected.id}
           landmark={selected}
-          distance={geo.status === 'ok' ? distanceMeters(geo, selected) : selected.distance}
+          distance={distanceOf(selected)}
           fromUser={geo.status === 'ok'}
-          onClose={closePanel}
+          onClose={closeAll}
+          onBack={listOpen ? closePanel : undefined}
         />
+      ) : (
+        listOpen &&
+        places.status === 'success' && (
+          <PlaceList
+            landmarks={places.landmarks}
+            distanceOf={distanceOf}
+            onSelect={selectLandmark}
+            onClose={() => setListOpen(false)}
+          />
+        )
       )}
 
-      {!selected && places.status === 'success' && prefs && places.landmarks.length > 0 && (
-        <Legend categories={prefs.categories} landmarks={places.landmarks} total={places.total} />
-      )}
+      {/* On phones the bottom sheet covers this area, so hide the controls while it's open. */}
+      <div className={panelOpen ? 'max-sm:hidden' : undefined}>
+        <MapControls
+          legend={
+            places.status === 'success' &&
+            prefs &&
+            places.landmarks.length > 0 && (
+              <Legend categories={prefs.categories} landmarks={places.landmarks} total={places.total} />
+            )
+          }
+          placeCount={places.status === 'success' ? places.landmarks.length : null}
+          onOpenList={() => {
+            setSelectedId(null)
+            setListOpen(true)
+          }}
+          onZoomIn={() => mapRef.current?.zoomIn()}
+          onZoomOut={() => mapRef.current?.zoomOut()}
+          onLocate={
+            geo.status === 'ok'
+              ? () => mapRef.current?.flyTo({ center: [geo.longitude, geo.latitude], zoom: 15, duration: 1000 })
+              : null
+          }
+        />
+      </div>
     </>
   )
 }
