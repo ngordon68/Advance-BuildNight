@@ -17,3 +17,20 @@ export async function fetchRecentChecks(deviceId) {
   if (error) throw error
   return data
 }
+
+// Saves one check and returns the inserted row (with its id and created_at).
+export async function insertCheck({ deviceId, foodText, allergens, flaggedTerms }) {
+  if (!supabase) throw new Error('Supabase is not configured. Check .env.local.')
+  const { data, error } = await supabase
+    .from('checks')
+    .insert({
+      device_id: deviceId,
+      food_text: foodText,
+      allergens,
+      flagged_terms: flaggedTerms,
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}

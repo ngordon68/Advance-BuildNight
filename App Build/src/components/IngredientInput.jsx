@@ -1,7 +1,9 @@
 export default function IngredientInput({ value, onChange, onCheck }) {
+  const isEmpty = value.trim() === ''
+
   const submit = (e) => {
     e.preventDefault()
-    onCheck()
+    if (!isEmpty) onCheck()
   }
 
   return (
@@ -14,7 +16,9 @@ export default function IngredientInput({ value, onChange, onCheck }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />
-      <button type="submit">Check</button>
+      <button type="submit" disabled={isEmpty}>
+        Check
+      </button>
     </form>
   )
 }

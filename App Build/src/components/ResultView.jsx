@@ -1,6 +1,6 @@
 import { allergenLabel } from '../lib/allergens.js'
 
-export default function ResultView({ result }) {
+export default function ResultView({ result, saveStatus }) {
   if (!result) return null
 
   if (result.error) {
@@ -45,6 +45,12 @@ export default function ResultView({ result }) {
           ),
         )}
       </p>
+
+      {saveStatus === 'error' && (
+        <p className="save-note" role="status">
+          Couldn't save this check to Recent checks.
+        </p>
+      )}
     </section>
   )
 }

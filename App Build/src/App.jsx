@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import AllergenPicker from './components/AllergenPicker.jsx'
 import IngredientInput from './components/IngredientInput.jsx'
 import ResultView from './components/ResultView.jsx'
 import RecentChecks from './components/RecentChecks.jsx'
 import { findMatches } from './lib/highlight.js'
 import { getDeviceId, loadSelectedAllergens, saveSelectedAllergens } from './lib/storage.js'
-import { fetchRecentChecks } from './lib/supabase.js'
+import { fetchRecentChecks, insertCheck } from './lib/supabase.js'
 
 const deviceId = getDeviceId()
 
@@ -20,6 +20,8 @@ export default function App() {
   const [text, setText] = useState('')
   const [result, setResult] = useState(null)
   const [recent, setRecent] = useState({ status: 'loading', checks: [], error: null })
+  const [saveStatus, setSaveStatus] = useState(null) // null | 'saving' | 'saved' | 'error'
+  const latestSave = useRef(0)
 
   useEffect(() => saveSelectedAllergens(selected), [selected])
 
@@ -36,9 +38,36 @@ export default function App() {
     }
   }, [])
 
-  const handleCheck = () => setResult(runCheck(text, selected))
+  const handleCheck = async () => {
+    const checked = runCheck(text, selected)
+    setResult(checked)
+    if (checked.error) return
 
+    // Tag this save so a slower earlier save can't overwrite the note for a newer check.
+    const saveId = ++latestSave.current
+    setSaveStatus('saving')
+    try {
+      const row = await insertCheck({
+        deviceId,
+        foodText: text,
+        allergens: selected,
+        flaggedTerms: checked.flaggedTerms,
+      })
+      setRecent((prev) => ({
+        ...prev,
+        checks: [row, ...prev.checks.filter((c) => c.id !== row.id)].slice(0, 10),
+      }))
+      if (saveId === latestSave.current) setSaveStatus('saved')
+    } catch (err) {
+      console.error('Failed to save check', err)
+      if (saveId === latestSave.current) setSaveStatus('error')
+    }
+  }
+
+  // Re-checking a past entry only shows it again; it is not saved a second time.
   const handleSelectRecent = (check) => {
+    latestSave.current++
+    setSaveStatus(null)
     setText(check.food_text)
     setSelected(check.allergens)
     setResult(runCheck(check.food_text, check.allergens))
@@ -55,7 +84,7 @@ export default function App() {
 
       <AllergenPicker selected={selected} onChange={setSelected} />
       <IngredientInput value={text} onChange={setText} onCheck={handleCheck} />
-      <ResultView result={result} />
+      <ResultView result={result} saveStatus={saveStatus} />
       <RecentChecks
         status={recent.status}
         checks={recent.checks}
