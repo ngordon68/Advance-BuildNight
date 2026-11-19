@@ -119,15 +119,16 @@ Advance BuildNight/
 5. Reload while signed in → still signed in.
 **Commit:** `feat: add Supabase email/password authentication`
 
-### [ ] Phase 7 — Save preferences to Supabase
-**Goal:** Signed-in users' questionnaire answers stored in Supabase; guest answers in localStorage upload on first sign-in.
-**Files:** `supabase/schema.sql` (`preferences` table: `user_id uuid pk references auth.users`, `categories text[]`, `vibe text`, `updated_at`; RLS: users select/insert/update own row), `usePreferences.ts` (Supabase when signed in, localStorage otherwise; merge on sign-in).
-**Setup (you):** paste `supabase/schema.sql` into Supabase SQL Editor → Run.
+### [x] Phase 7 — Save preferences to Supabase
+**Goal:** Signed-in users' questionnaire answers stored in Supabase; guest answers in localStorage upload on first sign-in; signing out clears this device's copy so the next person starts fresh.
+**Files:** `supabase/schema.sql` (`preferences` table: `user_id uuid pk references auth.users`, `categories text[]`, `vibe text`, `updated_at`, with value checks; RLS: users select/insert/update own row; grants for `authenticated`), `src/lib/remotePrefs.ts` (fetch/upsert), `src/hooks/usePreferences.ts` (Supabase when signed in, localStorage copy always; remote wins, else upload guest answers; clear on sign-out; `syncing`/`syncError` state), `src/hooks/useAuth.ts` (+ `subscribeAuth`/`getAuth`), `src/lib/storage.ts` (+ `clearPrefs`), `App.tsx` ("Loading your interests…" while syncing instead of redirecting), `MapPage.tsx` (sync-error pill).
+**Setup (you):** fill in `.env.local` (Phase 6), then paste `supabase/schema.sql` into Supabase SQL Editor → Run.
 **Test:**
-1. As guest, answer Art + Lively. Sign in → Table Editor → `preferences` has your row with `{art}`, `lively`.
-2. Edit interests to Nature + Quiet → row updates.
+1. Signed out, Edit interests → Art + Lively. Sign up/in → Table Editor → `preferences` has your row with `{art}`, `lively`.
+2. Edit interests to Nature + Quiet → row updates (`updated_at` changes).
 3. Open a private window, sign in as same user → map uses Nature + Quiet without the questionnaire.
-4. Sign up a second user → cannot see first user's row (SQL: `select * from preferences` as that user via app returns only own).
+4. Sign out → you're sent to the questionnaire (this device's copy is cleared). Sign up a second user → questionnaire (doesn't inherit the first user's answers); after answering, Table Editor shows two rows. In SQL Editor, `select * from preferences` shows both (it runs as admin); in the app each user only ever loads their own.
+5. If you skip the SQL step: map shows "Couldn't sync your interests — using this device's copy."
 **Commit:** `feat: persist questionnaire answers to Supabase for signed-in users`
 
 ### [ ] Phase 8 — Favorites

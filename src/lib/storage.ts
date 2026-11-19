@@ -3,7 +3,7 @@ import { CATEGORY_IDS, VIBE_IDS } from './categories'
 
 const PREFS_KEY = 'nearbygems.prefs'
 
-function isPreferences(value: unknown): value is Preferences {
+export function isPreferences(value: unknown): value is Preferences {
   if (typeof value !== 'object' || value === null) return false
   const v = value as Record<string, unknown>
   return (
@@ -23,6 +23,15 @@ export function loadPrefs(): Preferences | null {
     return isPreferences(parsed) ? parsed : null
   } catch {
     return null
+  }
+}
+
+/** Removes the saved copy (used on sign-out so the next person on this device starts fresh). */
+export function clearPrefs(): void {
+  try {
+    localStorage.removeItem(PREFS_KEY)
+  } catch {
+    /* storage unavailable */
   }
 }
 

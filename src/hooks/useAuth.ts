@@ -22,13 +22,18 @@ function set(next: Partial<AuthState>) {
 // Keep this callback synchronous: awaiting other auth calls inside it can deadlock.
 supabase?.auth.onAuthStateChange((_event, session) => set({ ready: true, user: session?.user ?? null }))
 
-function subscribe(listener: () => void) {
+/** Subscribe to auth changes from outside React (e.g. other stores). */
+export function subscribeAuth(listener: () => void) {
   listeners.add(listener)
   return () => listeners.delete(listener)
 }
 
+export function getAuth(): AuthState {
+  return state
+}
+
 export function useAuth(): AuthState {
-  return useSyncExternalStore(subscribe, () => state)
+  return useSyncExternalStore(subscribeAuth, getAuth)
 }
 
 const NOT_CONFIGURED = 'Sign-in isn’t set up yet (Supabase keys missing from .env.local).'

@@ -10,7 +10,7 @@ import UserLocation from '../components/UserLocation'
 import { useColorScheme } from '../hooks/useColorScheme'
 import { useGeolocation } from '../hooks/useGeolocation'
 import { useLandmarks } from '../hooks/useLandmarks'
-import { usePreferences } from '../hooks/usePreferences'
+import { usePreferencesState } from '../hooks/usePreferences'
 import { DEFAULT_CENTER, DEFAULT_ZOOM, MAP_STYLES } from '../lib/constants'
 import { circlePolygon, distanceMeters } from '../lib/geo'
 import { SEARCH_RADIUS_M } from '../lib/landmarks'
@@ -22,7 +22,7 @@ const RESEARCH_DISTANCE_M = 250
 export default function MapPage() {
   const scheme = useColorScheme()
   const geo = useGeolocation()
-  const prefs = usePreferences()
+  const { prefs, syncError } = usePreferencesState()
   const mapRef = useRef<MapRef>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
   const hasCentered = useRef(false)
@@ -122,6 +122,7 @@ export default function MapPage() {
             <Spinner /> Finding your location…
           </StatusPill>
         )}
+        {syncError && <StatusPill tone="error">Couldn't sync your interests — using this device's copy.</StatusPill>}
         {places.status === 'loading' && (
           <StatusPill>
             <Spinner /> Finding places nearby…
