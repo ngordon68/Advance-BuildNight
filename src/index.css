@@ -1,0 +1,47 @@
+@import 'tailwindcss';
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-100 text-slate-900 antialiased dark:bg-neutral-900 dark:text-neutral-100;
+  /* SF Pro on Apple devices, sensible system fonts elsewhere */
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Frosted glass surface used for floating UI */
+@utility glass {
+  @apply border border-white/60 bg-white/70 shadow-lg shadow-black/10 backdrop-blur-xl backdrop-saturate-150 dark:border-white/10 dark:bg-neutral-800/70 dark:shadow-black/40;
+}
+
+/* ---- MapLibre controls, restyled to match ---- */
+.maplibregl-ctrl-group {
+  @apply glass overflow-hidden rounded-xl! border-0!;
+}
+.maplibregl-ctrl-group button {
+  @apply size-10! bg-transparent!;
+}
+.maplibregl-ctrl-group button + button {
+  @apply border-t-black/10! dark:border-t-white/10!;
+}
+.maplibregl-ctrl-group button:hover {
+  @apply bg-black/5! dark:bg-white/10!;
+}
+.maplibregl-ctrl-bottom-right {
+  @apply m-4! mb-6!;
+}
+@media (prefers-color-scheme: dark) {
+  .maplibregl-ctrl-group .maplibregl-ctrl-icon {
+    filter: invert(1);
+  }
+  .maplibregl-ctrl-attrib {
+    @apply bg-neutral-800/70! text-neutral-300!;
+  }
+  .maplibregl-ctrl-attrib a {
+    @apply text-neutral-300!;
+  }
+}
