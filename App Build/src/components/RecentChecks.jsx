@@ -7,11 +7,17 @@ const dateFormat = new Intl.DateTimeFormat(undefined, {
   minute: '2-digit',
 })
 
-export default function RecentChecks({ checks, onSelect }) {
+export default function RecentChecks({ status, checks, error, onSelect }) {
   return (
-    <section className="card recent">
+    <section className="card recent" aria-busy={status === 'loading'}>
       <h2>Recent checks</h2>
-      {checks.length === 0 ? (
+      {status === 'loading' ? (
+        <p className="muted">Loading…</p>
+      ) : status === 'error' ? (
+        <p className="notice notice-warn" role="alert">
+          Couldn't load recent checks. {error}
+        </p>
+      ) : checks.length === 0 ? (
         <p className="muted">No checks yet.</p>
       ) : (
         <ul>
