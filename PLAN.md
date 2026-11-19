@@ -65,7 +65,7 @@ Advance BuildNight/
 4. Resize to phone width (DevTools device toolbar) → no horizontal scroll.
 **Commit:** `chore: scaffold Vite React TS app with Tailwind and MapLibre vector map`
 
-### [ ] Phase 2 — User location + fallback
+### [x] Phase 2 — User location + fallback
 **Goal:** Show "you are here" marker and accuracy circle; fallback banner + Chicago when unavailable.
 **Files:** `src/hooks/useGeolocation.ts`, `src/components/LocationBanner.tsx`, `MapPage.tsx`.
 **Test:**

@@ -45,3 +45,35 @@ body {
     @apply text-neutral-300!;
   }
 }
+
+/* ---- "You are here" dot (Apple Maps style) ---- */
+.user-dot {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #0a84ff;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+}
+.user-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  background: #0a84ff;
+  opacity: 0.4;
+  animation: user-dot-pulse 2s ease-out infinite;
+  z-index: -1;
+}
+@keyframes user-dot-pulse {
+  to {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .user-dot::after {
+    animation: none;
+  }
+}
