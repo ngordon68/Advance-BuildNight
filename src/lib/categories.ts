@@ -1,7 +1,7 @@
 import type { CategoryId, Vibe } from '../types'
 
-/** An OpenStreetMap tag filter, e.g. `historic=memorial`. */
-export type OsmTag = { key: string; value: string }
+/** An OpenStreetMap tag filter, e.g. `historic=memorial`, with a display label. */
+export type OsmTag = { key: string; value: string; label: string }
 
 export type Category = {
   id: CategoryId
@@ -13,7 +13,7 @@ export type Category = {
   tags: { quiet: OsmTag[]; lively: OsmTag[] }
 }
 
-const tag = (key: string, value: string): OsmTag => ({ key, value })
+const tag = (key: string, value: string, label: string): OsmTag => ({ key, value, label })
 
 export const CATEGORIES: Category[] = [
   {
@@ -23,8 +23,8 @@ export const CATEGORIES: Category[] = [
     emoji: '🏛️',
     color: '#c2410c',
     tags: {
-      quiet: [tag('historic', 'memorial')],
-      lively: [tag('historic', 'monument')],
+      quiet: [tag('historic', 'memorial', 'Memorial')],
+      lively: [tag('historic', 'monument', 'Monument')],
     },
   },
   {
@@ -34,8 +34,8 @@ export const CATEGORIES: Category[] = [
     emoji: '🎨',
     color: '#9333ea',
     tags: {
-      quiet: [tag('tourism', 'museum')],
-      lively: [tag('tourism', 'artwork'), tag('tourism', 'gallery'), tag('amenity', 'theatre')],
+      quiet: [tag('tourism', 'museum', 'Museum')],
+      lively: [tag('tourism', 'artwork', 'Public art'), tag('tourism', 'gallery', 'Gallery'), tag('amenity', 'theatre', 'Theatre')],
     },
   },
   {
@@ -45,8 +45,8 @@ export const CATEGORIES: Category[] = [
     emoji: '🌿',
     color: '#16a34a',
     tags: {
-      quiet: [tag('leisure', 'garden'), tag('leisure', 'nature_reserve'), tag('tourism', 'viewpoint')],
-      lively: [tag('leisure', 'park')],
+      quiet: [tag('leisure', 'garden', 'Garden'), tag('leisure', 'nature_reserve', 'Nature reserve'), tag('tourism', 'viewpoint', 'Viewpoint')],
+      lively: [tag('leisure', 'park', 'Park')],
     },
   },
 ]
@@ -60,9 +60,23 @@ export const VIBES: { id: Vibe; label: string; description: string; emoji: strin
 export const CATEGORY_IDS = CATEGORIES.map((c) => c.id)
 export const VIBE_IDS = VIBES.map((v) => v.id)
 
+export const CATEGORY_BY_ID = Object.fromEntries(CATEGORIES.map((c) => [c.id, c])) as Record<CategoryId, Category>
+
+/** A searchable tag together with the category it belongs to. */
+export type SearchTag = OsmTag & { category: CategoryId }
+
 /** OSM tags to search for, given the user's preferences. */
-export function tagsFor(categories: CategoryId[], vibe: Vibe): OsmTag[] {
+export function tagsFor(categories: CategoryId[], vibe: Vibe): SearchTag[] {
   return CATEGORIES.filter((c) => categories.includes(c.id)).flatMap((c) =>
-    vibe === 'any' ? [...c.tags.quiet, ...c.tags.lively] : c.tags[vibe],
+    (vibe === 'any' ? [...c.tags.quiet, ...c.tags.lively] : c.tags[vibe]).map((t) => ({ ...t, category: c.id })),
   )
+}
+
+const KIND_LABELS = Object.fromEntries(
+  CATEGORIES.flatMap((c) => [...c.tags.quiet, ...c.tags.lively]).map((t) => [t.value, t.label]),
+)
+
+/** Human label for an OSM tag value, e.g. "artwork" → "Public art". */
+export function kindLabel(kind: string): string {
+  return KIND_LABELS[kind] ?? kind.replace(/_/g, ' ')
 }

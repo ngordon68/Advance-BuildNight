@@ -1,21 +1,54 @@
 import '../lib/maplibre'
-import { useEffect, useRef, useState } from 'react'
-import Map, { NavigationControl, type MapRef } from 'react-map-gl/maplibre'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import Map, { Layer, NavigationControl, Source, type MapRef } from 'react-map-gl/maplibre'
+import LandmarkMarker from '../components/LandmarkMarker'
+import Legend from '../components/Legend'
 import LocationBanner from '../components/LocationBanner'
+import StatusPill, { Spinner } from '../components/StatusPill'
 import UserLocation from '../components/UserLocation'
 import { useColorScheme } from '../hooks/useColorScheme'
 import { useGeolocation } from '../hooks/useGeolocation'
+import { useLandmarks } from '../hooks/useLandmarks'
+import { usePreferences } from '../hooks/usePreferences'
 import { DEFAULT_CENTER, DEFAULT_ZOOM, MAP_STYLES } from '../lib/constants'
+import { circlePolygon, distanceMeters } from '../lib/geo'
+import { SEARCH_RADIUS_M } from '../lib/landmarks'
+import type { LatLon } from '../types'
+
+/** Re-search only after the user has moved this far, so GPS jitter doesn't refetch. */
+const RESEARCH_DISTANCE_M = 250
 
 export default function MapPage() {
   const scheme = useColorScheme()
   const geo = useGeolocation()
+  const prefs = usePreferences()
   const mapRef = useRef<MapRef>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
   const hasCentered = useRef(false)
 
-  // Fly to the user's position the first time we get a fix (not on every update,
-  // so we don't fight the user while they pan around).
+  // Where we search: the user's position, Chicago if location is unavailable,
+  // or nothing yet while we're still waiting for a location answer.
+  // Updated during render (React's "adjust state when inputs change" pattern); it
+  // converges because the new center is 0 m from itself.
+  const [searchCenter, setSearchCenter] = useState<LatLon | null>(null)
+  const candidate: LatLon | null =
+    geo.status === 'ok'
+      ? { latitude: geo.latitude, longitude: geo.longitude }
+      : geo.status === 'unavailable'
+        ? DEFAULT_CENTER
+        : null
+  if (candidate && (!searchCenter || distanceMeters(searchCenter, candidate) >= RESEARCH_DISTANCE_M)) {
+    setSearchCenter(candidate)
+  }
+
+  const { state: places, retry } = useLandmarks(searchCenter, prefs)
+
+  const radius = useMemo(
+    () => searchCenter && circlePolygon(searchCenter.latitude, searchCenter.longitude, SEARCH_RADIUS_M),
+    [searchCenter],
+  )
+
+  // Fly to the user's position the first time we get a fix.
   useEffect(() => {
     if (!mapLoaded || geo.status !== 'ok' || hasCentered.current) return
     hasCentered.current = true
@@ -33,16 +66,57 @@ export default function MapPage() {
         onLoad={() => setMapLoaded(true)}
       >
         <NavigationControl position="bottom-right" visualizePitch />
+        {radius && (
+          <Source id="search-radius" type="geojson" data={radius}>
+            <Layer id="search-radius-fill" type="fill" paint={{ 'fill-color': '#0d9488', 'fill-opacity': 0.04 }} />
+            <Layer
+              id="search-radius-line"
+              type="line"
+              paint={{ 'line-color': '#0d9488', 'line-width': 2, 'line-opacity': 0.6, 'line-dasharray': [2, 2] }}
+            />
+          </Source>
+        )}
         {geo.status === 'ok' && (
           <UserLocation latitude={geo.latitude} longitude={geo.longitude} accuracy={geo.accuracy} />
         )}
+        {places.status === 'success' && places.landmarks.map((l) => <LandmarkMarker key={l.id} landmark={l} />)}
       </Map>
 
-      {geo.status === 'unavailable' && <LocationBanner reason={geo.reason} />}
-      {geo.status === 'pending' && (
-        <div className="glass absolute top-20 left-1/2 z-10 -translate-x-1/2 rounded-full px-4 py-2 text-sm">
-          Finding your location…
-        </div>
+      {/* Status messages stack under the header */}
+      <div className="pointer-events-none absolute inset-x-4 top-20 z-10 mx-auto flex max-w-md flex-col items-center gap-2 *:pointer-events-auto">
+        {geo.status === 'unavailable' && <LocationBanner reason={geo.reason} />}
+        {geo.status === 'pending' && (
+          <StatusPill>
+            <Spinner /> Finding your location…
+          </StatusPill>
+        )}
+        {places.status === 'loading' && (
+          <StatusPill>
+            <Spinner /> Finding places nearby…
+          </StatusPill>
+        )}
+        {places.status === 'error' && (
+          <StatusPill tone="error">
+            Couldn't load places.
+            <button
+              type="button"
+              onClick={retry}
+              className="rounded-full bg-teal-600 px-3 py-0.5 font-medium text-white hover:bg-teal-700"
+            >
+              Retry
+            </button>
+          </StatusPill>
+        )}
+        {places.status === 'success' && places.landmarks.length === 0 && (
+          <StatusPill>No places found within 2 km. Try different interests.</StatusPill>
+        )}
+        {places.status === 'success' && places.source === 'tiles' && places.landmarks.length > 0 && (
+          <StatusPill>Live place data is busy — showing limited details.</StatusPill>
+        )}
+      </div>
+
+      {places.status === 'success' && prefs && places.landmarks.length > 0 && (
+        <Legend categories={prefs.categories} landmarks={places.landmarks} total={places.total} />
       )}
     </>
   )

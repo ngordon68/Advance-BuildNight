@@ -16,7 +16,7 @@ export default function LocationBanner({ reason }: Props) {
   return (
     <div
       role="status"
-      className="glass absolute inset-x-4 top-20 z-10 mx-auto flex max-w-md items-start gap-3 rounded-2xl px-4 py-3 text-sm"
+      className="glass flex w-full items-start gap-3 rounded-2xl px-4 py-3 text-sm"
     >
       <span aria-hidden="true" className="mt-0.5 text-amber-500">
         <svg viewBox="0 0 24 24" className="size-5" fill="currentColor">

@@ -9,7 +9,7 @@ Nearby Gems is a web app for locals who want to explore interesting places close
 | Users | Locals exploring their own area |
 | Platform | Web app, mobile-first responsive |
 | Stack | Vite + React + TypeScript, Tailwind CSS, MapLibre GL via react-map-gl, React Router |
-| Map tiles / data | OpenFreeMap vector styles (`liberty` light, `fiord` blue-gray dark; no key); Overpass API for landmarks (no key) |
+| Map tiles / data | OpenFreeMap vector styles (`liberty` light, `fiord` blue-gray dark; no key). Landmarks: Overpass API first (no key; 2 servers, 6 s + 5 s limits); if every server fails, fall back to named POIs decoded from OpenFreeMap z14 vector tiles (name + type only, no memorials/nature reserves) with a "limited details" notice |
 | Search radius | Fixed 2 km |
 | No location | Banner explaining how to enable location; map centers on Chicago (41.8781, -87.6298) |
 | Questionnaire | Step 1: categories (multi-select, ≥1 required). Step 2: vibe (Quiet / Lively / No preference) |
@@ -85,20 +85,20 @@ Advance BuildNight/
 5. Header **Edit interests** → form pre-filled with previous answers.
 **Commit:** `feat: add multi-step interest questionnaire saved to localStorage`
 
-### [ ] Phase 4 — Landmarks from Overpass
-**Goal:** Fetch matching landmarks within 2 km of the current/fallback location and show color-coded markers.
-**Files:** `src/lib/overpass.ts` (query builder + fetch + parse), `src/lib/distance.ts` (haversine), `src/hooks/useLandmarks.ts`, `src/components/LandmarkMarker.tsx` (react-map-gl `Marker` with Apple-style round category pin), `MapPage.tsx` (loading spinner, error toast with Retry, "No places found" message, 2 km radius outline as a GeoJSON circle layer).
+### [x] Phase 4 — Landmarks (Overpass + map-tile backup)
+**Goal:** Fetch matching landmarks within 2 km of the current/fallback location and show color-coded markers. Overpass first; if it fails, fall back to the map's vector tiles so the map always shows something.
+**Files:** `src/lib/overpass.ts` (query builder, endpoint fallthrough, parse), `src/lib/tilePois.ts` (decode z14 OpenFreeMap tiles with `@mapbox/vector-tile` + `pbf`), `src/lib/landmarks.ts` (orchestration, nearest-200 cap, sessionStorage cache of Overpass results), `src/lib/geo.ts` (+ haversine distance and tile math; replaces the planned `distance.ts`), `src/lib/categories.ts` (+ labels, `CATEGORY_BY_ID`, `kindLabel`), `src/types.ts` (+ `Landmark`), `src/hooks/useLandmarks.ts`, `src/components/LandmarkMarker.tsx` (Apple-style round category pin), `src/components/Legend.tsx`, `src/components/StatusPill.tsx`, `MapPage.tsx` (status stack, dashed 2 km radius circle, re-search only after moving 250 m).
 **Test:**
-1. With location set to Chicago (Sensors or fallback), prefs History+Art, No preference → within ~5 s markers appear (e.g. Art Institute, Cloud Gate artwork); legend shows category colors.
-2. DevTools → Network → filter `interpreter` → one POST to overpass-api.de, 200 OK.
-3. Edit interests → only Nature, Quiet → map refreshes with only gardens/reserves/viewpoints.
-4. Network → Offline → reload → error message with **Retry**; go Online → Retry → markers load.
-5. Sensors → custom location in the ocean (0, 0) → "No places found within 2 km".
-**Commit:** `feat: fetch nearby landmarks from Overpass based on interests`
+1. With location blocked (Chicago fallback), prefs History + Art, No preference → "Finding places nearby…", then pins appear (purple 🎨 art, orange 🏛️ history); legend bottom-left shows per-category counts; dashed teal 2 km circle. Hover a pin → tooltip "Name · Type".
+2. DevTools → Network → filter `interpreter` → one POST to overpass-api.de. If it's 200, no notice appears. If Overpass is down/slow, a second POST to overpass.private.coffee follows, then pins appear with "Live place data is busy — showing limited details."
+3. Edit interests → only Nature, Quiet → map refreshes with only green 🌿 pins (gardens/viewpoints/reserves).
+4. Error state: DevTools → Network → ⋮ → More tools → **Network request blocking** → add `*interpreter*` and `*tiles.openfreemap.org/planet*` → Edit interests → change something → Show my map → "Couldn't load places. **Retry**" (map tiles also blank). Remove the blocks → click **Retry** → pins load.
+5. Sensors → custom location 0, 0 (ocean) → reload → "No places found within 2 km."
+**Commit:** `feat: fetch nearby landmarks from Overpass with map-tile fallback`
 
 ### [ ] Phase 5 — Detail panel
 **Goal:** Clicking a marker opens a panel (bottom sheet on mobile, side panel on desktop).
-**Content:** name, category + specific type (e.g. "Museum"), distance ("850 m away"), address if tagged, links: Wikipedia (if `wikipedia` tag), Website (if `website` tag), "View on OpenStreetMap", "Directions" (Google Maps walking URL). Close via ✕ or Esc.
+**Content:** name, category + specific type (e.g. "Museum"), distance ("850 m away"), address if tagged, links: Wikipedia (if `wikipedia` tag), Website (if `website` tag), "View on OpenStreetMap", "Directions" (Google Maps walking URL). Close via ✕ or Esc. In map-tile backup mode there are no tags, so only OSM + Directions links show.
 **Files:** `src/components/DetailPanel.tsx`, `MapPage.tsx`, `LandmarkMarker.tsx`.
 **Test:**
 1. Click a marker → panel slides in with name, type, distance; selected marker highlighted.
@@ -158,6 +158,6 @@ Advance BuildNight/
 - Then hand you the manual steps above and stop. Commit only after you confirm; tick the box; show the hash.
 
 ## Risks / notes
-- Overpass public servers can be slow or rate-limited; client sends one query per location/preference change, with a 25 s timeout and Retry button. Fallback endpoint `overpass.kumi.systems` used if the main one fails.
+- Overpass public servers are often overloaded (all were down during Phase 4 development). Mitigation: two endpoints with short limits, then map-tile backup; Overpass results cached per session; Retry button if everything fails. Backup mode lacks Wikipedia/website links, memorials and nature reserves.
 - Geolocation requires HTTPS or localhost — fine for dev and Netlify.
 - Supabase anon key is safe in the browser only because RLS is enabled on every table.
