@@ -6,6 +6,7 @@ dist-ssr
 # Env files (real Supabase keys live in .env.local)
 *.local
 .env
+.env.local
 .env.*
 !.env.example
 
