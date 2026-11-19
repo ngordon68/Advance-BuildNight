@@ -97,3 +97,40 @@ body {
   transform: scale(1.15);
   outline: none;
 }
+.landmark-pin--selected {
+  transform: scale(1.35);
+  box-shadow:
+    0 0 0 3px #0d9488,
+    0 4px 12px rgb(0 0 0 / 0.35);
+}
+.landmark-pin--selected:hover,
+.landmark-pin--selected:focus-visible {
+  transform: scale(1.35);
+}
+
+/* ---- Detail panel entrance ---- */
+.detail-panel {
+  animation: sheet-up 220ms ease-out;
+}
+@media (min-width: 640px) {
+  .detail-panel {
+    animation-name: panel-in;
+  }
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+@keyframes panel-in {
+  from {
+    transform: translateX(-16px);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail-panel {
+    animation: none;
+  }
+}

@@ -1,6 +1,7 @@
 import '../lib/maplibre'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Map, { Layer, NavigationControl, Source, type MapRef } from 'react-map-gl/maplibre'
+import DetailPanel from '../components/DetailPanel'
 import LandmarkMarker from '../components/LandmarkMarker'
 import Legend from '../components/Legend'
 import LocationBanner from '../components/LocationBanner'
@@ -43,6 +44,29 @@ export default function MapPage() {
 
   const { state: places, retry } = useLandmarks(searchCenter, prefs)
 
+  // Selected place (derived, so it clears itself if a new search drops it).
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const selected = places.status === 'success' ? places.landmarks.find((l) => l.id === selectedId) : undefined
+  const closePanel = useCallback(() => setSelectedId(null), [])
+
+  const selectLandmark = useCallback((id: string) => {
+    setSelectedId(id)
+  }, [])
+
+  // Pan so the selected pin isn't hidden behind the panel/sheet.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!selected || !map) return
+    const desktop = window.matchMedia('(min-width: 640px)').matches
+    const { clientHeight } = map.getContainer()
+    map.easeTo({
+      center: [selected.longitude, selected.latitude],
+      // offset = where the point ends up relative to the map center, in px
+      offset: desktop ? [190, 0] : [0, -clientHeight * 0.22],
+      duration: 500,
+    })
+  }, [selected])
+
   const radius = useMemo(
     () => searchCenter && circlePolygon(searchCenter.latitude, searchCenter.longitude, SEARCH_RADIUS_M),
     [searchCenter],
@@ -64,6 +88,7 @@ export default function MapPage() {
         style={{ position: 'absolute', inset: 0 }}
         attributionControl={{ compact: true }}
         onLoad={() => setMapLoaded(true)}
+        onClick={closePanel}
       >
         <NavigationControl position="bottom-right" visualizePitch />
         {radius && (
@@ -79,11 +104,18 @@ export default function MapPage() {
         {geo.status === 'ok' && (
           <UserLocation latitude={geo.latitude} longitude={geo.longitude} accuracy={geo.accuracy} />
         )}
-        {places.status === 'success' && places.landmarks.map((l) => <LandmarkMarker key={l.id} landmark={l} />)}
+        {places.status === 'success' &&
+          places.landmarks.map((l) => (
+            <LandmarkMarker key={l.id} landmark={l} selected={l.id === selectedId} onSelect={selectLandmark} />
+          ))}
       </Map>
 
       {/* Status messages stack under the header */}
-      <div className="pointer-events-none absolute inset-x-4 top-20 z-10 mx-auto flex max-w-md flex-col items-center gap-2 *:pointer-events-auto">
+      <div
+        className={`pointer-events-none absolute inset-x-4 top-20 z-10 mx-auto flex max-w-md flex-col items-center gap-2 *:pointer-events-auto ${
+          selected ? 'sm:left-[24rem]' : '' /* make room for the side panel */
+        }`}
+      >
         {geo.status === 'unavailable' && <LocationBanner reason={geo.reason} />}
         {geo.status === 'pending' && (
           <StatusPill>
@@ -115,7 +147,17 @@ export default function MapPage() {
         )}
       </div>
 
-      {places.status === 'success' && prefs && places.landmarks.length > 0 && (
+      {selected && (
+        <DetailPanel
+          key={selected.id}
+          landmark={selected}
+          distance={geo.status === 'ok' ? distanceMeters(geo, selected) : selected.distance}
+          fromUser={geo.status === 'ok'}
+          onClose={closePanel}
+        />
+      )}
+
+      {!selected && places.status === 'success' && prefs && places.landmarks.length > 0 && (
         <Legend categories={prefs.categories} landmarks={places.landmarks} total={places.total} />
       )}
     </>

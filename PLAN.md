@@ -96,10 +96,10 @@ Advance BuildNight/
 5. Sensors → custom location 0, 0 (ocean) → reload → "No places found within 2 km."
 **Commit:** `feat: fetch nearby landmarks from Overpass with map-tile fallback`
 
-### [ ] Phase 5 — Detail panel
+### [x] Phase 5 — Detail panel
 **Goal:** Clicking a marker opens a panel (bottom sheet on mobile, side panel on desktop).
 **Content:** name, category + specific type (e.g. "Museum"), distance ("850 m away"), address if tagged, links: Wikipedia (if `wikipedia` tag), Website (if `website` tag), "View on OpenStreetMap", "Directions" (Google Maps walking URL). Close via ✕ or Esc. In map-tile backup mode there are no tags, so only OSM + Directions links show.
-**Files:** `src/components/DetailPanel.tsx`, `MapPage.tsx`, `LandmarkMarker.tsx`.
+**Files:** `src/components/DetailPanel.tsx`, `src/lib/links.ts` (OSM/directions/Wikipedia/website URLs, address; only http(s) websites allowed), `src/lib/format.ts` (distance + walk time), `MapPage.tsx` (selection, pan pin clear of panel, status stack shifts beside panel), `LandmarkMarker.tsx` (selected state), `src/index.css` (selected pin + slide-in).
 **Test:**
 1. Click a marker → panel slides in with name, type, distance; selected marker highlighted.
 2. Click "View on OpenStreetMap" → new tab opens the correct OSM feature.
