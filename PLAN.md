@@ -107,10 +107,10 @@ Advance BuildNight/
 4. Press Esc → panel closes. At phone width the panel is a bottom sheet and the map stays usable.
 **Commit:** `feat: add landmark detail panel with links and distance`
 
-### [ ] Phase 6 — Supabase auth (email + password)
+### [x] Phase 6 — Supabase auth (email + password)
 **Goal:** Sign up, sign in, sign out; header shows signed-in email. App still works for guests.
 **Setup (you):** put `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local`. In Supabase → Authentication → Providers, Email enabled; for easy local testing, optionally turn off "Confirm email".
-**Files:** `@supabase/supabase-js`, `.env.example`, `src/lib/supabase.ts`, `src/hooks/useAuth.ts` (context provider), `src/pages/AuthPage.tsx` (`/auth`, tabs Sign in / Sign up), `Header.tsx`.
+**Files:** `@supabase/supabase-js`, `.env.example`, `src/vite-env.d.ts` (typed env vars), `src/lib/supabase.ts` (client, or null if keys missing — guests still work), `src/hooks/useAuth.ts` (shared store fed by `onAuthStateChange`, plus `signIn`/`signUp`/`signOut`), `src/pages/AuthPage.tsx` (`/auth`, tabs Sign in / Sign up, redirects home when signed in), `Header.tsx` (Sign in link, or email + Sign out; compact on phones), `App.tsx` (route).
 **Test:**
 1. Restart `npm run dev`. Header shows **Sign in**.
 2. `/auth` → Sign up with a test email + 8+ char password → redirected to map, header shows email + **Sign out**. (If confirm-email is on: confirm via inbox first.)

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import Header from './components/Header'
 import { usePreferences } from './hooks/usePreferences'
+import AuthPage from './pages/AuthPage'
 import MapPage from './pages/MapPage'
 import QuestionnairePage from './pages/QuestionnairePage'
 
@@ -26,6 +27,7 @@ export default function App() {
             }
           />
           <Route path="/questionnaire" element={<QuestionnairePage />} />
+          <Route path="/auth" element={<AuthPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
