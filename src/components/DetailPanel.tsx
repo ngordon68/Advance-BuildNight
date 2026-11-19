@@ -1,8 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { CATEGORY_BY_ID, kindLabel } from '../lib/categories'
 import { formatDistance, walkingMinutes } from '../lib/format'
 import { directionsUrl, formatAddress, osmUrl, websiteUrl, wikipediaUrl } from '../lib/links'
 import type { Landmark } from '../types'
+import { BookIcon, ChevronLeftIcon, ExternalIcon, GlobeIcon, MapIcon, WalkIcon } from './icons'
+import SidePanel, { CloseButton } from './SidePanel'
 
 type Props = {
   landmark: Landmark
@@ -11,22 +13,27 @@ type Props = {
   /** True when the distance is measured from the user's real position. */
   fromUser: boolean
   onClose: () => void
+  /** Shown when the place was opened from the list. */
+  onBack?: () => void
 }
 
-const linkClass =
-  'flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition hover:bg-black/5 dark:hover:bg-white/10'
-
-function ExternalIcon() {
+function LinkRow({ href, icon, children }: { href: string; icon: ReactNode; children: ReactNode }) {
   return (
-    <svg viewBox="0 0 20 20" className="size-4 opacity-50" fill="currentColor" aria-hidden="true">
-      <path d="M11 3a1 1 0 1 0 0 2h2.59l-6.3 6.3a1 1 0 1 0 1.42 1.4L15 6.42V9a1 1 0 1 0 2 0V4a1 1 0 0 0-1-1h-5Z" />
-      <path d="M5 5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-3a1 1 0 1 0-2 0v3H5V7h3a1 1 0 0 0 0-2H5Z" />
-    </svg>
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-3 px-4 py-3.5 text-[15px] transition hover:bg-black/[0.03] dark:hover:bg-white/5"
+    >
+      <span className="text-blue-600 dark:text-blue-400">{icon}</span>
+      <span className="flex-1">{children}</span>
+      <ExternalIcon className="size-4 text-slate-400" />
+    </a>
   )
 }
 
-/** Place card: bottom sheet on phones, floating side panel on wider screens. */
-export default function DetailPanel({ landmark, distance, fromUser, onClose }: Props) {
+/** Place card shown when a marker is selected. */
+export default function DetailPanel({ landmark, distance, fromUser, onClose, onBack }: Props) {
   const category = CATEGORY_BY_ID[landmark.category]
   const headingRef = useRef<HTMLHeadingElement>(null)
   const wiki = wikipediaUrl(landmark.tags)
@@ -34,81 +41,67 @@ export default function DetailPanel({ landmark, distance, fromUser, onClose }: P
   const address = formatAddress(landmark.tags)
   const limited = Object.keys(landmark.tags).length === 0
 
-  // Esc closes the panel.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
-
   // Move focus to the new place's name so keyboard/screen-reader users land in the panel.
   useEffect(() => headingRef.current?.focus(), [landmark.id])
 
   return (
-    <aside
-      role="dialog"
-      aria-labelledby="place-name"
-      className="detail-panel glass fixed inset-x-0 bottom-0 z-30 max-h-[55%] overflow-y-auto rounded-t-3xl px-5 pt-2 pb-6 sm:absolute sm:inset-x-auto sm:top-20 sm:bottom-auto sm:left-4 sm:max-h-[calc(100%-7rem)] sm:w-[22rem] sm:rounded-3xl sm:pt-5"
-    >
-      {/* Grab handle (decorative) on phones */}
-      <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-black/15 sm:hidden dark:bg-white/20" aria-hidden="true" />
-
-      <div className="flex items-start gap-3">
-        <span
-          className="grid size-11 shrink-0 place-items-center rounded-full text-xl ring-2 ring-white dark:ring-neutral-800"
-          style={{ backgroundColor: category.color }}
-          aria-hidden="true"
-        >
-          {category.emoji}
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 id="place-name" ref={headingRef} tabIndex={-1} className="text-xl leading-tight font-semibold outline-none">
-            {landmark.name}
-          </h2>
-          <p className="mt-0.5 text-sm text-slate-500 dark:text-neutral-400">
-            {kindLabel(landmark.kind)} · {category.label}
-          </p>
-        </div>
+    <SidePanel labelledBy="place-name" onEscape={onBack ?? onClose}>
+      {onBack && (
         <button
           type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="grid size-8 shrink-0 place-items-center rounded-full bg-black/5 text-slate-600 hover:bg-black/10 dark:bg-white/10 dark:text-neutral-300 dark:hover:bg-white/20"
+          onClick={onBack}
+          className="-ml-1 mb-2 flex items-center gap-1 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
         >
-          ✕
+          <ChevronLeftIcon className="size-4" /> All places
         </button>
+      )}
+
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: category.color }}>
+            <span className="size-2 rounded-full" style={{ backgroundColor: category.color }} aria-hidden="true" />
+            {category.label} · {kindLabel(landmark.kind)}
+          </p>
+          <h2
+            id="place-name"
+            ref={headingRef}
+            tabIndex={-1}
+            className="mt-1 text-[26px] leading-tight font-bold tracking-tight outline-none"
+          >
+            {landmark.name}
+          </h2>
+        </div>
+        <CloseButton onClick={onClose} />
       </div>
 
-      <p className="mt-4 text-sm">
-        <span className="font-semibold">{formatDistance(distance)}</span>{' '}
-        {fromUser ? 'away' : 'from map center'}
-        <span className="text-slate-500 dark:text-neutral-400"> · {walkingMinutes(distance)} min walk</span>
+      <p className="mt-4 text-[15px] font-semibold">
+        {formatDistance(distance)} {fromUser ? 'away' : 'from map center'} · {walkingMinutes(distance)} min walk
       </p>
-      {address && <p className="mt-1 text-sm text-slate-600 dark:text-neutral-300">{address}</p>}
+      {address && <p className="mt-1 text-[15px] text-slate-600 dark:text-neutral-300">{address}</p>}
 
       <a
         href={directionsUrl(landmark)}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-teal-600 py-2.5 font-semibold text-white transition hover:bg-teal-700"
+        className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700"
       >
-        Directions
+        <WalkIcon className="size-4" /> Directions
       </a>
 
-      <div className="mt-3 divide-y divide-black/5 rounded-2xl bg-black/[0.03] dark:divide-white/10 dark:bg-white/5">
-        {wiki && (
-          <a href={wiki} target="_blank" rel="noopener noreferrer" className={linkClass}>
-            Wikipedia <ExternalIcon />
-          </a>
-        )}
+      <div className="mt-5 divide-y divide-black/5 overflow-hidden rounded-2xl bg-slate-100/80 dark:divide-white/10 dark:bg-white/5">
         {website && (
-          <a href={website} target="_blank" rel="noopener noreferrer" className={linkClass}>
-            Website <ExternalIcon />
-          </a>
+          <LinkRow href={website} icon={<GlobeIcon className="size-5" />}>
+            Website
+          </LinkRow>
         )}
-        <a href={osmUrl(landmark)} target="_blank" rel="noopener noreferrer" className={linkClass}>
-          View on OpenStreetMap <ExternalIcon />
-        </a>
+        {wiki && (
+          <LinkRow href={wiki} icon={<BookIcon className="size-5" />}>
+            Wikipedia
+          </LinkRow>
+        )}
+        <LinkRow href={osmUrl(landmark)} icon={<MapIcon className="size-5" />}>
+          View on OpenStreetMap
+        </LinkRow>
       </div>
 
       {limited && (
@@ -116,6 +109,6 @@ export default function DetailPanel({ landmark, distance, fromUser, onClose }: P
           Limited details while live place data is busy.
         </p>
       )}
-    </aside>
+    </SidePanel>
   )
 }

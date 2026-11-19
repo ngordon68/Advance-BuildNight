@@ -18,26 +18,16 @@ body {
   @apply border border-white/60 bg-white/70 shadow-lg shadow-black/10 backdrop-blur-xl backdrop-saturate-150 dark:border-white/10 dark:bg-neutral-800/70 dark:shadow-black/40;
 }
 
-/* ---- MapLibre controls, restyled to match ---- */
-.maplibregl-ctrl-group {
-  @apply glass overflow-hidden rounded-xl! border-0!;
+/* Near-opaque card surface used by the header, panels and map controls */
+@utility surface {
+  @apply border border-black/5 bg-white/95 shadow-lg shadow-black/10 backdrop-blur-xl dark:border-white/10 dark:bg-neutral-800/95 dark:shadow-black/40;
 }
-.maplibregl-ctrl-group button {
-  @apply size-10! bg-transparent!;
-}
-.maplibregl-ctrl-group button + button {
-  @apply border-t-black/10! dark:border-t-white/10!;
-}
-.maplibregl-ctrl-group button:hover {
-  @apply bg-black/5! dark:bg-white/10!;
-}
-.maplibregl-ctrl-bottom-right {
-  @apply m-4! mb-6!;
+
+/* ---- MapLibre attribution, tucked under the header ---- */
+.maplibregl-ctrl-top-right {
+  @apply mt-20! mr-2!;
 }
 @media (prefers-color-scheme: dark) {
-  .maplibregl-ctrl-group .maplibregl-ctrl-icon {
-    filter: invert(1);
-  }
   .maplibregl-ctrl-attrib {
     @apply bg-neutral-800/70! text-neutral-300!;
   }
@@ -78,34 +68,59 @@ body {
   }
 }
 
-/* ---- Landmark pins ---- */
+/* ---- Landmark pins: shape per category ---- */
 .landmark-pin {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 9999px;
+  width: 34px;
+  height: 34px;
+  color: #fff;
   border: 2px solid #fff;
   box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
-  font-size: 15px;
-  line-height: 1;
   cursor: pointer;
-  transition: transform 120ms ease;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.landmark-pin__icon {
+  width: 16px;
+  height: 16px;
+}
+.landmark-pin--circle {
+  border-radius: 9999px;
+}
+.landmark-pin--square {
+  border-radius: 8px;
+}
+/* Teardrop: rotated rounded square, icon counter-rotated. Anchored at the bottom tip. */
+.landmark-pin--pin {
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  margin-bottom: 7px; /* rotated tip sits ~7px below the box; this puts it on the anchor */
+}
+.landmark-pin--pin .landmark-pin__icon {
+  transform: rotate(45deg);
 }
 .landmark-pin:hover,
 .landmark-pin:focus-visible {
-  transform: scale(1.15);
+  transform: scale(1.12);
   outline: none;
 }
-.landmark-pin--selected {
-  transform: scale(1.35);
-  box-shadow:
-    0 0 0 3px #0d9488,
-    0 4px 12px rgb(0 0 0 / 0.35);
+.landmark-pin--pin:hover,
+.landmark-pin--pin:focus-visible {
+  transform: rotate(-45deg) scale(1.12);
 }
+.landmark-pin--selected,
 .landmark-pin--selected:hover,
 .landmark-pin--selected:focus-visible {
-  transform: scale(1.35);
+  transform: scale(1.5);
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 4px var(--pin-color),
+    0 4px 12px rgb(0 0 0 / 0.35);
+}
+.landmark-pin--pin.landmark-pin--selected,
+.landmark-pin--pin.landmark-pin--selected:hover,
+.landmark-pin--pin.landmark-pin--selected:focus-visible {
+  transform: rotate(-45deg) scale(1.5);
 }
 
 /* ---- Detail panel entrance ---- */
