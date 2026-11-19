@@ -15,3 +15,6 @@ create index checks_device_created_idx on public.checks (device_id, created_at d
 alter table public.checks enable row level security;
 create policy "anon can read"   on public.checks for select to anon using (true);
 create policy "anon can insert" on public.checks for insert to anon with check (true);
+
+-- Newer Supabase projects do not auto-grant table access to anon; RLS policies above still apply.
+grant select, insert on public.checks to anon;
